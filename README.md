@@ -1,21 +1,18 @@
-# Intel NUC7i[x]BN and NUC6CAY LED Control
+# Intel NUC7CJYH LED Control
 
-This is a simple kernel module to control the power and ring LEDs on Intel NUC7i[x]BN and NUC6CAY kits.
+This is a simple kernel module to partially control the power LED on Intel NUC7CJYH.
 
-This module is intended as a demonstration/proof-of-concept and may not be maintained further.  Perhaps
-it can act as a jumping off point for a more polished and complete implementation.  For testing and basic
-manipulation of the power LED and ring LED, it ought to work fine, but use with caution none the less. This
-has only been tested on 4.4.x kernels.
+This module is intended as a proof-of-concept and will not be maintained further.
+Use this on your own responsibility.
 
 
 ## Requirements
 
 Requirements:
 
-* Intel NUC7i[x]BN and NUC6CAY
-* BIOS AY0038 or BN0043 or later
+* Intel NUC7CJYH
+* BIOS JY0045
 * ACPI/WMI support in kernel
-* LED(s) set to `SW Control` in BIOS
 
 ## Building
 
@@ -88,50 +85,61 @@ cat /proc/acpi/nuc_led
 To change the LED state:
 
 ```
- echo '<led>,<brightness>,<blink/fade>,<color>' | sudo tee /proc/acpi/nuc_led > /dev/null
+ echo '<led>,<usage type>,<brightness>,<blink>,<blink speed>,<color>' | sudo tee /proc/acpi/nuc_led > /dev/null
 ```
 
-|LED  |Description                              |
-|-----|-----------------------------------------|
-|power|The power button LED.                    |
-|ring |The ring LED surrounding the front panel.|
+|LED  |Description                         |
+|-----|------------------------------------|
+|power|The power button LED.               |
+|hdd  |HDD indicator LED. not controllable.|
+|ring |N/A                                 |
+
+|Usage Type|Description                    |
+|----------|-------------------------------|
+|power     |power indicator                |
+|hdd       |HDD activity indicator LED. N/A|
+|sw        |Software control. N/A          |
+|disable   |Disable LED. N/A               |
 
 Brightness:
 
 * any integer between `0` and `100`.
 
-|Blink/Fade Option|Description    |
-|-----------------|---------------|
-|blink\_fast      |1Hz blink      |
-|blink\_medium    |0.5Hz blink    |
-|blink\_slow      |0.25Hz blink   |
-|fade\_fast       |1Hz blink      |
-|fade\_medium     |0.5Hz blink    |
-|fade\_slow       |0.25Hz blink   |
-|none             |solid/always on|
+|Blink Option|Description      |
+|------------|-----------------|
+|solid       |always on        |
+|breathing   |fade out/in      |
+|pulsing     |fade out, then on|
 
-|LED Color|power|ring|
-|---------|:---:|:--:|
-|amber    |X    |    |
-|cyan     |     |X   |
-|blue     |X    |X   |
-|green    |     |X   |
-|off      |X    |X   |
-|pink     |     |X   |
-|red      |     |X   |
-|white    |     |X   |
-|yellow   |     |X   |
-    
-Example execution to cause the ring LED blink green at a medium rate at partial intensity:
+Blink Speed:
 
-    echo 'ring,80,blink_medium,green' | sudo tee /proc/acpi/nuc_led > /dev/null
+*integer from `1` (fastest) to `9` (slowest).
+
+|LED Color|power|
+|---------|:---:|
+|off      |X    |
+|amber    |X    |
+|blue     |X    |
+|cyan     |     |
+|green    |     |
+|pink     |     |
+|red      |     |
+|white    |     |
+|yellow   |     |
     
+Example execution to cause the power LED blink orange at a medium rate at partial intensity:
+
+    echo 'power,power,80,breathing,amber' | sudo tee /proc/acpi/nuc_led > /dev/null
+
 Errors in passing parameters will appear as warnings in dmesg.
+
+Note: SW control mode does not work. Only setting power LED to power indicator is possible because of WMI.
+Luckily, since setting power indicator option for power LED seems to work, you can control the LED at some extent.
+Although setting HDD LED can be set to hdd indicator, setting indicator options didn't work and
+it is no fun, so setting hdd led isn't included.
 
 You can change the owner, group and permissions of `/proc/acpi/nuc_led` by passing parameters to the nuc_led kernel module. Use:
 
 * `nuc_led_uid` to set the owner (default is 0, root)
 * `nuc_led_gid` to set the owning group (default is 0, root)
 * `nuc_led_perms` to set the file permissions (default is r+w for group and user and r for others)
-
-Note: Once an LED has been set to `SW Control` in the BIOS, it will remain off initially until a color is explicitly set, after which the set color is retained across reboots.
